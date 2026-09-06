@@ -130,10 +130,12 @@ function readEntries(file) {
     return [];
   }
 }
-function writeRemaining(file, entries) {
+function writeRemaining(file, entries, consumed) {
   try {
-    if (entries.length === 0) (0, import_node_fs3.rmSync)(file, { force: true });
-    else (0, import_node_fs3.writeFileSync)(file, entries.map((e) => JSON.stringify(e)).join("\n") + "\n");
+    const tail = (0, import_node_fs3.existsSync)(file) ? (0, import_node_fs3.readFileSync)(file, "utf8").split("\n").filter(Boolean).slice(consumed) : [];
+    const kept = [...entries.map((e) => JSON.stringify(e)), ...tail];
+    if (kept.length === 0) (0, import_node_fs3.rmSync)(file, { force: true });
+    else (0, import_node_fs3.writeFileSync)(file, kept.join("\n") + "\n");
   } catch {
   }
 }
@@ -210,12 +212,13 @@ async function main() {
     let stopped = false;
     for (const file of spoolFiles()) {
       if (stopped) break;
+      const entries = readEntries(file);
       const result = await drainEntries(
-        readEntries(file),
+        entries,
         (entry) => postJsonOk(config.endpoint, config.orgToken, entry),
         MAX_PER_RUN - sent
       );
-      writeRemaining(file, result.remaining);
+      writeRemaining(file, result.remaining, entries.length);
       sent += result.sent;
       if (result.failed || sent >= MAX_PER_RUN) stopped = true;
     }
