@@ -1,12 +1,18 @@
 {
   "name": "tokenmonk-capture",
   "displayName": "TokenMonk Capture",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Captures prompt and session signals for TokenMonk spend attribution and classification. Redacts secrets and PII on this machine before anything is sent, never blocks or alters an agent action, and fails open if TokenMonk is unreachable.",
-  "author": { "name": "TokenMonk" },
+  "author": {
+    "name": "TokenMonk"
+  },
   "homepage": "https://tokenmonk.ai",
   "license": "UNLICENSED",
-  "keywords": ["tokenmonk", "observability", "finops"],
+  "keywords": [
+    "tokenmonk",
+    "observability",
+    "finops"
+  ],
   "category": "other",
   "variables": {
     "type": "object",
@@ -25,10 +31,16 @@
         "type": "string",
         "title": "Redaction mode",
         "description": "Set to `content` to send hashes and shapes instead of prompt text.",
-        "enum": ["default", "content"],
+        "enum": [
+          "default",
+          "content"
+        ],
         "default": "default"
       }
     },
-    "required": ["CAPTURE_ENDPOINT", "CAPTURE_TOKEN"]
+    "required": [
+      "CAPTURE_ENDPOINT",
+      "CAPTURE_TOKEN"
+    ]
   }
 }

@@ -7,6 +7,20 @@
         "timeout": 5,
         "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/capture-prompt-submit.js\""
       }
+    ],
+    "sessionStart": [
+      {
+        "type": "command",
+        "timeout": 5,
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/flush-spool.js\""
+      }
+    ],
+    "stop": [
+      {
+        "type": "command",
+        "timeout": 5,
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/flush-spool.js\""
+      }
     ]
   }
 }
