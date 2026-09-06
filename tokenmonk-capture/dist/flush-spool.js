@@ -1,5 +1,10 @@
 "use strict";
 
+// src/flush-spool.ts
+var import_node_os2 = require("node:os");
+var import_node_path4 = require("node:path");
+var import_node_fs2 = require("node:fs");
+
 // src/lib/hook-log.ts
 var import_node_fs = require("node:fs");
 var import_node_os = require("node:os");
@@ -80,10 +85,35 @@ function spawnUploader() {
 }
 
 // src/flush-spool.ts
+var THOUGHT_GATE_MS = 6e4;
+function markerDir() {
+  return process.env.TOKENMONK_DRAIN_DIR ?? (0, import_node_path4.join)((0, import_node_os2.homedir)(), ".tokenmonk", "drain");
+}
+function gateOpen(conversationId) {
+  const safe = conversationId.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 128) || "unknown";
+  const marker = (0, import_node_path4.join)(markerDir(), safe);
+  try {
+    const last = Number((0, import_node_fs2.readFileSync)(marker, "utf8"));
+    if (Number.isFinite(last) && Date.now() - last < THOUGHT_GATE_MS) return false;
+  } catch {
+  }
+  try {
+    (0, import_node_fs2.mkdirSync)(markerDir(), { recursive: true });
+    (0, import_node_fs2.writeFileSync)(marker, String(Date.now()));
+  } catch {
+  }
+  return true;
+}
 async function main() {
-  await readStdinJson();
+  const payload = await readStdinJson();
   process.stdout.write(JSON.stringify({}));
-  logHook("flush-spool", { event: "drain_requested" });
+  const event = typeof payload.hook_event_name === "string" ? payload.hook_event_name : "unknown";
+  const conversationId = typeof payload.conversation_id === "string" ? payload.conversation_id : "unknown";
+  if (event === "afterAgentThought" && !gateOpen(conversationId)) {
+    logHook("flush-spool", { event: "gated", hook: event });
+    return;
+  }
+  logHook("flush-spool", { event: "drain_requested", hook: event });
   spawnUploader();
 }
 void runHook("flush-spool", main).then(() => process.exit(0));

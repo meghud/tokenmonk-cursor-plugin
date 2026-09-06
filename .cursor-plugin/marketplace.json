@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "TokenMonk capture for Cursor \u2014 attributes AI spend and turns recurring work into reviewed skills.",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "plugins": [
     {
       "name": "tokenmonk-capture",
       "source": "tokenmonk-capture",
       "description": "Captures prompt and session signals for TokenMonk spend attribution. Redacts secrets and PII on your machine before anything is sent, never blocks an agent action, and fails open if TokenMonk is unreachable.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": "TokenMonk",
       "homepage": "https://tokenmonk.ai",
       "license": "UNLICENSED",
