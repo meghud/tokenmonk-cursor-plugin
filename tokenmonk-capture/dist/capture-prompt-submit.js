@@ -30,7 +30,7 @@ var require_redact = __commonJS({
   "../../packages/redact/dist/redact.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.redact = redact2;
+    exports2.redact = redact3;
     var PATTERNS = [
       { category: "private_key_block", regex: /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]+?-----END [A-Z ]*PRIVATE KEY-----/g },
       { category: "aws_access_key", regex: /\bAKIA[0-9A-Z]{16}\b/g },
@@ -46,7 +46,7 @@ var require_redact = __commonJS({
       { category: "ssn", regex: /\b\d{3}-\d{2}-\d{4}\b/g },
       { category: "phone", regex: /\b(?:\(\d{3}\)\s?|\d{3}-)\d{3}-\d{4}\b/g }
     ];
-    function redact2(text) {
+    function redact3(text) {
       let redactedText = text;
       const findings = [];
       for (const { category, regex } of PATTERNS) {
@@ -87,7 +87,7 @@ var require_dist = __commonJS({
 });
 
 // src/capture-prompt-submit.ts
-var import_redact = __toESM(require_dist());
+var import_redact2 = __toESM(require_dist());
 
 // src/lib/hook-log.ts
 var import_node_fs = require("node:fs");
@@ -190,10 +190,37 @@ function appendRecord(record, now = /* @__PURE__ */ new Date()) {
   }
 }
 
+// src/lib/turn-aggregate.ts
+var import_node_fs3 = require("node:fs");
+var import_node_os3 = require("node:os");
+var import_node_path5 = require("node:path");
+function turnsDir() {
+  return process.env.TOKENMONK_TURNS_DIR ?? (0, import_node_path5.join)((0, import_node_os3.homedir)(), ".tokenmonk", "turns");
+}
+function turnFile(conversationId, generationId) {
+  const safeConv = conversationId || "unknown";
+  return (0, import_node_path5.join)(turnsDir(), `${safeConv}${generationId ? `-${generationId}` : ""}.jsonl`);
+}
+function appendTurnEntry(conversationId, generationId, entry) {
+  try {
+    const dir = turnsDir();
+    if (!(0, import_node_fs3.existsSync)(dir)) (0, import_node_fs3.mkdirSync)(dir, { recursive: true });
+    (0, import_node_fs3.appendFileSync)(turnFile(conversationId, generationId), JSON.stringify(entry) + "\n");
+  } catch {
+  }
+}
+var MAX_AGE_MS2 = 6 * 60 * 60 * 1e3;
+
+// src/lib/tool-traffic.ts
+var import_redact = __toESM(require_dist());
+function sanitizeId(raw) {
+  return typeof raw === "string" ? raw.replace(/[^A-Za-z0-9._:-]/g, "") : "";
+}
+
 // src/lib/record.ts
 var import_node_crypto = require("node:crypto");
 var import_node_child_process3 = require("node:child_process");
-var import_node_os3 = require("node:os");
+var import_node_os4 = require("node:os");
 
 // src/lib/git-context.ts
 var import_node_child_process2 = require("node:child_process");
@@ -255,7 +282,7 @@ function identityHint(payload) {
   }
   let osUser = null;
   try {
-    osUser = (0, import_node_os3.userInfo)().username || null;
+    osUser = (0, import_node_os4.userInfo)().username || null;
   } catch {
     osUser = null;
   }
@@ -302,15 +329,15 @@ function baseRecord(payload, opts) {
 }
 
 // src/lib/config.ts
-var import_node_fs3 = require("node:fs");
-var import_node_os4 = require("node:os");
-var import_node_path5 = require("node:path");
+var import_node_fs4 = require("node:fs");
+var import_node_os5 = require("node:os");
+var import_node_path6 = require("node:path");
 function configFilePath() {
-  return process.env.TOKENMONK_CONFIG_FILE ?? (0, import_node_path5.join)((0, import_node_os4.homedir)(), ".tokenmonk", "cursor.config.json");
+  return process.env.TOKENMONK_CONFIG_FILE ?? (0, import_node_path6.join)((0, import_node_os5.homedir)(), ".tokenmonk", "cursor.config.json");
 }
 function readJson(path) {
   try {
-    const parsed = JSON.parse((0, import_node_fs3.readFileSync)(path, "utf8"));
+    const parsed = JSON.parse((0, import_node_fs4.readFileSync)(path, "utf8"));
     return typeof parsed === "object" && parsed !== null ? parsed : null;
   } catch {
     return null;
@@ -324,7 +351,7 @@ function loadConfig() {
   const envEndpoint = str2(process.env.CAPTURE_ENDPOINT);
   const envToken = str2(process.env.CAPTURE_TOKEN);
   if (envEndpoint && envToken) return { endpoint: envEndpoint, orgToken: envToken, redactMode };
-  for (const path of [configFilePath(), (0, import_node_path5.resolve)(pluginRoot(), "tokenmonk.config.json")]) {
+  for (const path of [configFilePath(), (0, import_node_path6.resolve)(pluginRoot(), "tokenmonk.config.json")]) {
     const cfg = readJson(path);
     if (!cfg) continue;
     const endpoint = str2(cfg.endpoint) ?? str2(cfg.capture_endpoint);
@@ -352,7 +379,7 @@ async function main() {
     return;
   }
   const conversationId = typeof payload.conversation_id === "string" ? payload.conversation_id : typeof payload.session_id === "string" ? payload.session_id : "unknown";
-  const { redactedText, findings } = (0, import_redact.redact)(prompt);
+  const { redactedText, findings } = (0, import_redact2.redact)(prompt);
   const config = loadConfig();
   const promptText = config?.redactMode === "content" ? null : redactedText;
   const record = baseRecord(payload, {
@@ -361,6 +388,7 @@ async function main() {
     skillsInvoked: slashSkill(prompt)
   });
   appendRecord(record);
+  appendTurnEntry(sanitizeId(conversationId), sanitizeId(payload.generation_id), { turn_id: record.turn_id });
   logHook("capture-prompt-submit", {
     event: "spooled",
     turn_id: record.turn_id,

@@ -35,6 +35,27 @@
         "timeout": 5,
         "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/flush-spool.js\""
       }
+    ],
+    "postToolUse": [
+      {
+        "type": "command",
+        "timeout": 5,
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/capture-tool-use.js\""
+      }
+    ],
+    "postToolUseFailure": [
+      {
+        "type": "command",
+        "timeout": 5,
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/capture-tool-use.js\""
+      }
+    ],
+    "afterMCPExecution": [
+      {
+        "type": "command",
+        "timeout": 5,
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/capture-tool-use.js\""
+      }
     ]
   }
 }
