@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "tokenmonk-config": {
+      "command": "node",
+      "args": ["${CURSOR_PLUGIN_ROOT}/dist/config-mcp.js"],
+      "env": {
+        "CAPTURE_ENDPOINT": "${CAPTURE_ENDPOINT}",
+        "CAPTURE_TOKEN": "${CAPTURE_TOKEN}",
+        "REDACT_MODE": "${REDACT_MODE}"
+      }
+    }
+  }
+}

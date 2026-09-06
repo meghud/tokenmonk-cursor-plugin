@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeSubmitPrompt": [
+      {
+        "type": "command",
+        "timeout": 5,
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/capture-prompt-submit.js\""
+      }
+    ]
+  }
+}
