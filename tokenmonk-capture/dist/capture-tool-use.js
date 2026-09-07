@@ -203,7 +203,7 @@ function appendRecord(record, now = /* @__PURE__ */ new Date()) {
 
 // src/lib/record.ts
 var import_node_child_process2 = require("node:child_process");
-var import_node_os4 = require("node:os");
+var import_node_os5 = require("node:os");
 
 // src/lib/git-context.ts
 var import_node_child_process = require("node:child_process");
@@ -245,6 +245,31 @@ function detectSurface(input = {}) {
   return process.env.VSCODE_PID ? "ide" : "cli";
 }
 
+// src/lib/identity-store.ts
+var import_node_fs4 = require("node:fs");
+var import_node_os4 = require("node:os");
+var import_node_path4 = require("node:path");
+function storePath() {
+  return process.env.TOKENMONK_IDENTITY_STORE ?? (0, import_node_path4.join)((0, import_node_os4.homedir)(), ".tokenmonk", "cursor-identity.json");
+}
+function rememberEmail(email) {
+  if (!email) return;
+  try {
+    if (readEmail() === email) return;
+    (0, import_node_fs4.mkdirSync)((0, import_node_path4.join)(storePath(), ".."), { recursive: true });
+    (0, import_node_fs4.writeFileSync)(storePath(), JSON.stringify({ email, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }));
+  } catch {
+  }
+}
+function readEmail() {
+  try {
+    const s = JSON.parse((0, import_node_fs4.readFileSync)(storePath(), "utf8"));
+    return typeof s.email === "string" && s.email.length > 0 ? s.email : null;
+  } catch {
+    return null;
+  }
+}
+
 // src/lib/record.ts
 function str(v) {
   return typeof v === "string" && v.length > 0 ? v : null;
@@ -256,7 +281,9 @@ function isAttributableEmail(email) {
   return !e.endsWith(".noreply.github.com");
 }
 function identityHint(payload) {
-  const payloadEmail = str(payload.user_email) ?? str(process.env.CURSOR_USER_EMAIL);
+  const observed = str(payload.user_email) ?? str(process.env.CURSOR_USER_EMAIL);
+  if (isAttributableEmail(observed)) rememberEmail(observed);
+  const payloadEmail = observed ?? readEmail();
   let gitUser = null;
   try {
     gitUser = (0, import_node_child_process2.execSync)("git config user.name", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || null;
@@ -265,7 +292,7 @@ function identityHint(payload) {
   }
   let osUser = null;
   try {
-    osUser = (0, import_node_os4.userInfo)().username || null;
+    osUser = (0, import_node_os5.userInfo)().username || null;
   } catch {
     osUser = null;
   }
@@ -309,9 +336,9 @@ function baseRecord(payload, opts) {
 
 // src/lib/tool-traffic.ts
 var import_node_crypto = require("node:crypto");
-var import_node_fs4 = require("node:fs");
-var import_node_os5 = require("node:os");
-var import_node_path4 = require("node:path");
+var import_node_fs5 = require("node:fs");
+var import_node_os6 = require("node:os");
+var import_node_path5 = require("node:path");
 var import_redact = __toESM(require_dist());
 function normalizeToolName(raw) {
   const name = typeof raw === "string" ? raw.trim() : "";
@@ -409,23 +436,23 @@ function loadTrafficConfig() {
   return cfg;
 }
 function trafficDir() {
-  return process.env.TOKENMONK_TRAFFIC_DIR ?? (0, import_node_path4.join)((0, import_node_os5.tmpdir)(), "tokenmonk-traffic");
+  return process.env.TOKENMONK_TRAFFIC_DIR ?? (0, import_node_path5.join)((0, import_node_os6.tmpdir)(), "tokenmonk-traffic");
 }
 function nextTrafficCount(conversationId, server, dir = trafficDir()) {
   try {
-    if (!(0, import_node_fs4.existsSync)(dir)) (0, import_node_fs4.mkdirSync)(dir, { recursive: true });
-    const file = (0, import_node_path4.join)(dir, `${sha256(conversationId).slice(0, 24)}.json`);
+    if (!(0, import_node_fs5.existsSync)(dir)) (0, import_node_fs5.mkdirSync)(dir, { recursive: true });
+    const file = (0, import_node_path5.join)(dir, `${sha256(conversationId).slice(0, 24)}.json`);
     let counts = {};
-    if ((0, import_node_fs4.existsSync)(file)) {
+    if ((0, import_node_fs5.existsSync)(file)) {
       try {
-        counts = JSON.parse((0, import_node_fs4.readFileSync)(file, "utf8"));
+        counts = JSON.parse((0, import_node_fs5.readFileSync)(file, "utf8"));
       } catch {
         counts = {};
       }
     }
     const next = (typeof counts[server] === "number" ? counts[server] : 0) + 1;
     counts[server] = next;
-    (0, import_node_fs4.writeFileSync)(file, JSON.stringify(counts));
+    (0, import_node_fs5.writeFileSync)(file, JSON.stringify(counts));
     return next;
   } catch {
     return 1;

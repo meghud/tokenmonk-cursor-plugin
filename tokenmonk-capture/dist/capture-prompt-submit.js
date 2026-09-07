@@ -220,7 +220,7 @@ function sanitizeId(raw) {
 // src/lib/record.ts
 var import_node_crypto = require("node:crypto");
 var import_node_child_process3 = require("node:child_process");
-var import_node_os4 = require("node:os");
+var import_node_os5 = require("node:os");
 
 // src/lib/git-context.ts
 var import_node_child_process2 = require("node:child_process");
@@ -262,6 +262,31 @@ function detectSurface(input = {}) {
   return process.env.VSCODE_PID ? "ide" : "cli";
 }
 
+// src/lib/identity-store.ts
+var import_node_fs4 = require("node:fs");
+var import_node_os4 = require("node:os");
+var import_node_path6 = require("node:path");
+function storePath() {
+  return process.env.TOKENMONK_IDENTITY_STORE ?? (0, import_node_path6.join)((0, import_node_os4.homedir)(), ".tokenmonk", "cursor-identity.json");
+}
+function rememberEmail(email) {
+  if (!email) return;
+  try {
+    if (readEmail() === email) return;
+    (0, import_node_fs4.mkdirSync)((0, import_node_path6.join)(storePath(), ".."), { recursive: true });
+    (0, import_node_fs4.writeFileSync)(storePath(), JSON.stringify({ email, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }));
+  } catch {
+  }
+}
+function readEmail() {
+  try {
+    const s = JSON.parse((0, import_node_fs4.readFileSync)(storePath(), "utf8"));
+    return typeof s.email === "string" && s.email.length > 0 ? s.email : null;
+  } catch {
+    return null;
+  }
+}
+
 // src/lib/record.ts
 function str(v) {
   return typeof v === "string" && v.length > 0 ? v : null;
@@ -273,7 +298,9 @@ function isAttributableEmail(email) {
   return !e.endsWith(".noreply.github.com");
 }
 function identityHint(payload) {
-  const payloadEmail = str(payload.user_email) ?? str(process.env.CURSOR_USER_EMAIL);
+  const observed = str(payload.user_email) ?? str(process.env.CURSOR_USER_EMAIL);
+  if (isAttributableEmail(observed)) rememberEmail(observed);
+  const payloadEmail = observed ?? readEmail();
   let gitUser = null;
   try {
     gitUser = (0, import_node_child_process3.execSync)("git config user.name", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || null;
@@ -282,7 +309,7 @@ function identityHint(payload) {
   }
   let osUser = null;
   try {
-    osUser = (0, import_node_os4.userInfo)().username || null;
+    osUser = (0, import_node_os5.userInfo)().username || null;
   } catch {
     osUser = null;
   }
@@ -329,15 +356,15 @@ function baseRecord(payload, opts) {
 }
 
 // src/lib/config.ts
-var import_node_fs4 = require("node:fs");
-var import_node_os5 = require("node:os");
-var import_node_path6 = require("node:path");
+var import_node_fs5 = require("node:fs");
+var import_node_os6 = require("node:os");
+var import_node_path7 = require("node:path");
 function configFilePath() {
-  return process.env.TOKENMONK_CONFIG_FILE ?? (0, import_node_path6.join)((0, import_node_os5.homedir)(), ".tokenmonk", "cursor.config.json");
+  return process.env.TOKENMONK_CONFIG_FILE ?? (0, import_node_path7.join)((0, import_node_os6.homedir)(), ".tokenmonk", "cursor.config.json");
 }
 function readJson(path) {
   try {
-    const parsed = JSON.parse((0, import_node_fs4.readFileSync)(path, "utf8"));
+    const parsed = JSON.parse((0, import_node_fs5.readFileSync)(path, "utf8"));
     return typeof parsed === "object" && parsed !== null ? parsed : null;
   } catch {
     return null;
@@ -351,7 +378,7 @@ function loadConfig() {
   const envEndpoint = str2(process.env.CAPTURE_ENDPOINT);
   const envToken = str2(process.env.CAPTURE_TOKEN);
   if (envEndpoint && envToken) return { endpoint: envEndpoint, orgToken: envToken, redactMode };
-  for (const path of [configFilePath(), (0, import_node_path6.resolve)(pluginRoot(), "tokenmonk.config.json")]) {
+  for (const path of [configFilePath(), (0, import_node_path7.resolve)(pluginRoot(), "tokenmonk.config.json")]) {
     const cfg = readJson(path);
     if (!cfg) continue;
     const endpoint = str2(cfg.endpoint) ?? str2(cfg.capture_endpoint);

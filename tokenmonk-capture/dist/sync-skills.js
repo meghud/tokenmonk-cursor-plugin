@@ -24,9 +24,9 @@ __export(sync_skills_exports, {
   markChecked: () => markChecked
 });
 module.exports = __toCommonJS(sync_skills_exports);
-var import_node_fs4 = require("node:fs");
-var import_node_os5 = require("node:os");
-var import_node_path5 = require("node:path");
+var import_node_fs5 = require("node:fs");
+var import_node_os6 = require("node:os");
+var import_node_path6 = require("node:path");
 
 // src/lib/hook-log.ts
 var import_node_fs = require("node:fs");
@@ -94,9 +94,9 @@ function readStdinJson(timeoutMs = 1500) {
 }
 
 // src/lib/user-skills.ts
-var import_node_fs3 = require("node:fs");
-var import_node_os4 = require("node:os");
-var import_node_path4 = require("node:path");
+var import_node_fs4 = require("node:fs");
+var import_node_os5 = require("node:os");
+var import_node_path5 = require("node:path");
 
 // src/lib/config.ts
 var import_node_fs2 = require("node:fs");
@@ -136,7 +136,34 @@ function loadConfig() {
 
 // src/lib/record.ts
 var import_node_child_process = require("node:child_process");
+var import_node_os4 = require("node:os");
+
+// src/lib/identity-store.ts
+var import_node_fs3 = require("node:fs");
 var import_node_os3 = require("node:os");
+var import_node_path4 = require("node:path");
+function storePath() {
+  return process.env.TOKENMONK_IDENTITY_STORE ?? (0, import_node_path4.join)((0, import_node_os3.homedir)(), ".tokenmonk", "cursor-identity.json");
+}
+function rememberEmail(email) {
+  if (!email) return;
+  try {
+    if (readEmail() === email) return;
+    (0, import_node_fs3.mkdirSync)((0, import_node_path4.join)(storePath(), ".."), { recursive: true });
+    (0, import_node_fs3.writeFileSync)(storePath(), JSON.stringify({ email, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }));
+  } catch {
+  }
+}
+function readEmail() {
+  try {
+    const s = JSON.parse((0, import_node_fs3.readFileSync)(storePath(), "utf8"));
+    return typeof s.email === "string" && s.email.length > 0 ? s.email : null;
+  } catch {
+    return null;
+  }
+}
+
+// src/lib/record.ts
 function str2(v) {
   return typeof v === "string" && v.length > 0 ? v : null;
 }
@@ -147,7 +174,9 @@ function isAttributableEmail(email) {
   return !e.endsWith(".noreply.github.com");
 }
 function identityHint(payload) {
-  const payloadEmail = str2(payload.user_email) ?? str2(process.env.CURSOR_USER_EMAIL);
+  const observed = str2(payload.user_email) ?? str2(process.env.CURSOR_USER_EMAIL);
+  if (isAttributableEmail(observed)) rememberEmail(observed);
+  const payloadEmail = observed ?? readEmail();
   let gitUser = null;
   try {
     gitUser = (0, import_node_child_process.execSync)("git config user.name", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || null;
@@ -156,7 +185,7 @@ function identityHint(payload) {
   }
   let osUser = null;
   try {
-    osUser = (0, import_node_os3.userInfo)().username || null;
+    osUser = (0, import_node_os4.userInfo)().username || null;
   } catch {
     osUser = null;
   }
@@ -186,14 +215,14 @@ function skillSlug(name) {
 var FETCH_TIMEOUT_MS = 8e3;
 var TM_PREFIX = "tm-";
 function skillsDir() {
-  return process.env.TOKENMONK_CURSOR_SKILLS_DIR ?? (0, import_node_path4.join)((0, import_node_os4.homedir)(), ".cursor", "skills");
+  return process.env.TOKENMONK_CURSOR_SKILLS_DIR ?? (0, import_node_path5.join)((0, import_node_os5.homedir)(), ".cursor", "skills");
 }
 function manifestPath() {
-  return process.env.TOKENMONK_CURSOR_SKILLS_MANIFEST ?? (0, import_node_path4.join)((0, import_node_os4.homedir)(), ".tokenmonk", "cursor-skills.json");
+  return process.env.TOKENMONK_CURSOR_SKILLS_MANIFEST ?? (0, import_node_path5.join)((0, import_node_os5.homedir)(), ".tokenmonk", "cursor-skills.json");
 }
 function readManifest() {
   try {
-    const raw = JSON.parse((0, import_node_fs3.readFileSync)(manifestPath(), "utf8"));
+    const raw = JSON.parse((0, import_node_fs4.readFileSync)(manifestPath(), "utf8"));
     return raw && Array.isArray(raw.slugs) ? raw : null;
   } catch {
     return null;
@@ -201,18 +230,17 @@ function readManifest() {
 }
 function saveManifest(m) {
   try {
-    (0, import_node_fs3.mkdirSync)((0, import_node_path4.join)(manifestPath(), ".."), { recursive: true });
-    (0, import_node_fs3.writeFileSync)(manifestPath(), JSON.stringify(m, null, 2));
+    (0, import_node_fs4.mkdirSync)((0, import_node_path5.join)(manifestPath(), ".."), { recursive: true });
+    (0, import_node_fs4.writeFileSync)(manifestPath(), JSON.stringify(m, null, 2));
   } catch (err) {
     logHook("cursor-skills", { event: "manifest-write-failed", message: String(err) });
   }
 }
 function dirFor(slug) {
-  return (0, import_node_path4.join)(skillsDir(), `${TM_PREFIX}${slug}`);
+  return (0, import_node_path5.join)(skillsDir(), `${TM_PREFIX}${slug}`);
 }
-async function fetchEntitled(baseUrl, orgToken, etag, force) {
+async function fetchEntitled(baseUrl, orgToken, etag, force, identity) {
   const headers = { Authorization: `Bearer ${orgToken}` };
-  const identity = identityHint({});
   if (identity.email) headers["X-TM-Email"] = identity.email;
   if (identity.os_user) headers["X-TM-Os-User"] = identity.os_user;
   if (identity.git_user) headers["X-TM-Git-User"] = identity.git_user;
@@ -239,11 +267,16 @@ async function syncSkills(force = false) {
   const empty = { installed: [], removed: [], skills: [], identityStatus: "unknown" };
   const config = loadConfig();
   if (!config) return { status: "unconfigured", ...empty };
+  const identity = identityHint({});
+  if (!identity.email) {
+    logHook("cursor-skills", { event: "unidentified", reason: "no email on payload, env, or store" });
+    return { status: "unidentified", ...empty };
+  }
   const manifest = readManifest();
   const baseUrl = config.endpoint.replace(/\/v1\/capture\/?$/, "");
   let result;
   try {
-    result = await fetchEntitled(baseUrl, config.orgToken, manifest?.etag, force);
+    result = await fetchEntitled(baseUrl, config.orgToken, manifest?.etag, force, identity);
   } catch {
     return { status: "unreachable", ...empty };
   }
@@ -276,7 +309,7 @@ async function syncSkills(force = false) {
   const failed = [];
   let allWritten = true;
   try {
-    (0, import_node_fs3.mkdirSync)(skillsDir(), { recursive: true });
+    (0, import_node_fs4.mkdirSync)(skillsDir(), { recursive: true });
   } catch {
     return { status: "error", ...empty };
   }
@@ -287,9 +320,9 @@ async function syncSkills(force = false) {
     entries.push({ slug, name: skill.name, version: skill.version, description: skill.description });
     if (prevVersions[slug] === skill.version && !force) continue;
     try {
-      (0, import_node_fs3.mkdirSync)(dirFor(slug), { recursive: true });
-      (0, import_node_fs3.writeFileSync)(
-        (0, import_node_path4.join)(dirFor(slug), "SKILL.md"),
+      (0, import_node_fs4.mkdirSync)(dirFor(slug), { recursive: true });
+      (0, import_node_fs4.writeFileSync)(
+        (0, import_node_path5.join)(dirFor(slug), "SKILL.md"),
         ensureFrontmatter(skill.name, skill.description, skill.bodyContent),
         "utf8"
       );
@@ -306,7 +339,7 @@ async function syncSkills(force = false) {
   for (const slug of manifest?.slugs ?? []) {
     if (entitled.has(slug)) continue;
     try {
-      (0, import_node_fs3.rmSync)(dirFor(slug), { recursive: true, force: true });
+      (0, import_node_fs4.rmSync)(dirFor(slug), { recursive: true, force: true });
       removed.push(slug);
     } catch (err) {
       logHook("cursor-skills", { event: "prune-failed", slug, message: String(err) });
@@ -337,12 +370,12 @@ async function syncSkills(force = false) {
 // src/sync-skills.ts
 var CHECK_INTERVAL_MS = 24 * 60 * 60 * 1e3;
 function checkFile() {
-  return process.env.TOKENMONK_SKILLS_CHECK ?? (0, import_node_path5.join)((0, import_node_os5.homedir)(), ".tokenmonk", "cursor-skills-check.json");
+  return process.env.TOKENMONK_SKILLS_CHECK ?? (0, import_node_path6.join)((0, import_node_os6.homedir)(), ".tokenmonk", "cursor-skills-check.json");
 }
 function isDue(force) {
   if (force) return true;
   try {
-    const at = JSON.parse((0, import_node_fs4.readFileSync)(checkFile(), "utf8")).at ?? 0;
+    const at = JSON.parse((0, import_node_fs5.readFileSync)(checkFile(), "utf8")).at ?? 0;
     return Date.now() - at > CHECK_INTERVAL_MS;
   } catch {
     return true;
@@ -350,8 +383,8 @@ function isDue(force) {
 }
 function markChecked() {
   try {
-    (0, import_node_fs4.mkdirSync)((0, import_node_path5.join)(checkFile(), ".."), { recursive: true });
-    (0, import_node_fs4.writeFileSync)(checkFile(), JSON.stringify({ at: Date.now() }));
+    (0, import_node_fs5.mkdirSync)((0, import_node_path6.join)(checkFile(), ".."), { recursive: true });
+    (0, import_node_fs5.writeFileSync)(checkFile(), JSON.stringify({ at: Date.now() }));
   } catch {
   }
 }

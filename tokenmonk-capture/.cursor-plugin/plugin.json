@@ -1,7 +1,7 @@
 {
   "name": "tokenmonk-capture",
   "displayName": "TokenMonk Capture",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Captures prompt and session signals for TokenMonk spend attribution and classification. Redacts secrets and PII on this machine before anything is sent, never blocks or alters an agent action, and fails open if TokenMonk is unreachable.",
   "author": {
     "name": "TokenMonk"

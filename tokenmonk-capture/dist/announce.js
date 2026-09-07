@@ -25,9 +25,9 @@ __export(announce_exports, {
   pickTopic: () => pickTopic
 });
 module.exports = __toCommonJS(announce_exports);
-var import_node_fs4 = require("node:fs");
-var import_node_os5 = require("node:os");
-var import_node_path6 = require("node:path");
+var import_node_fs5 = require("node:fs");
+var import_node_os6 = require("node:os");
+var import_node_path7 = require("node:path");
 
 // src/lib/hook-log.ts
 var import_node_fs = require("node:fs");
@@ -132,7 +132,34 @@ function loadConfig() {
 
 // src/lib/record.ts
 var import_node_child_process = require("node:child_process");
+var import_node_os4 = require("node:os");
+
+// src/lib/identity-store.ts
+var import_node_fs3 = require("node:fs");
 var import_node_os3 = require("node:os");
+var import_node_path4 = require("node:path");
+function storePath() {
+  return process.env.TOKENMONK_IDENTITY_STORE ?? (0, import_node_path4.join)((0, import_node_os3.homedir)(), ".tokenmonk", "cursor-identity.json");
+}
+function rememberEmail(email) {
+  if (!email) return;
+  try {
+    if (readEmail() === email) return;
+    (0, import_node_fs3.mkdirSync)((0, import_node_path4.join)(storePath(), ".."), { recursive: true });
+    (0, import_node_fs3.writeFileSync)(storePath(), JSON.stringify({ email, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }));
+  } catch {
+  }
+}
+function readEmail() {
+  try {
+    const s = JSON.parse((0, import_node_fs3.readFileSync)(storePath(), "utf8"));
+    return typeof s.email === "string" && s.email.length > 0 ? s.email : null;
+  } catch {
+    return null;
+  }
+}
+
+// src/lib/record.ts
 function str2(v) {
   return typeof v === "string" && v.length > 0 ? v : null;
 }
@@ -143,7 +170,9 @@ function isAttributableEmail(email) {
   return !e.endsWith(".noreply.github.com");
 }
 function identityHint(payload) {
-  const payloadEmail = str2(payload.user_email) ?? str2(process.env.CURSOR_USER_EMAIL);
+  const observed = str2(payload.user_email) ?? str2(process.env.CURSOR_USER_EMAIL);
+  if (isAttributableEmail(observed)) rememberEmail(observed);
+  const payloadEmail = observed ?? readEmail();
   let gitUser = null;
   try {
     gitUser = (0, import_node_child_process.execSync)("git config user.name", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || null;
@@ -152,7 +181,7 @@ function identityHint(payload) {
   }
   let osUser = null;
   try {
-    osUser = (0, import_node_os3.userInfo)().username || null;
+    osUser = (0, import_node_os4.userInfo)().username || null;
   } catch {
     osUser = null;
   }
@@ -164,9 +193,9 @@ function identityHint(payload) {
 }
 
 // src/lib/user-skills.ts
-var import_node_fs3 = require("node:fs");
-var import_node_os4 = require("node:os");
-var import_node_path4 = require("node:path");
+var import_node_fs4 = require("node:fs");
+var import_node_os5 = require("node:os");
+var import_node_path5 = require("node:path");
 
 // src/lib/skill-bundle.ts
 function parseSkillFrontmatter(md) {
@@ -196,14 +225,14 @@ function parseSkillFrontmatter(md) {
 // src/lib/user-skills.ts
 var TM_PREFIX = "tm-";
 function skillsDir() {
-  return process.env.TOKENMONK_CURSOR_SKILLS_DIR ?? (0, import_node_path4.join)((0, import_node_os4.homedir)(), ".cursor", "skills");
+  return process.env.TOKENMONK_CURSOR_SKILLS_DIR ?? (0, import_node_path5.join)((0, import_node_os5.homedir)(), ".cursor", "skills");
 }
 function manifestPath() {
-  return process.env.TOKENMONK_CURSOR_SKILLS_MANIFEST ?? (0, import_node_path4.join)((0, import_node_os4.homedir)(), ".tokenmonk", "cursor-skills.json");
+  return process.env.TOKENMONK_CURSOR_SKILLS_MANIFEST ?? (0, import_node_path5.join)((0, import_node_os5.homedir)(), ".tokenmonk", "cursor-skills.json");
 }
 function readManifest() {
   try {
-    const raw = JSON.parse((0, import_node_fs3.readFileSync)(manifestPath(), "utf8"));
+    const raw = JSON.parse((0, import_node_fs4.readFileSync)(manifestPath(), "utf8"));
     return raw && Array.isArray(raw.slugs) ? raw : null;
   } catch {
     return null;
@@ -213,10 +242,10 @@ function readInstalledSkills() {
   const manifest = readManifest();
   if (manifest?.entries?.length) return manifest.entries;
   try {
-    return (0, import_node_fs3.readdirSync)(skillsDir()).filter((d) => d.startsWith(TM_PREFIX)).flatMap((d) => {
-      const file = (0, import_node_path4.join)(skillsDir(), d, "SKILL.md");
-      if (!(0, import_node_fs3.existsSync)(file)) return [];
-      const fm = parseSkillFrontmatter((0, import_node_fs3.readFileSync)(file, "utf8"));
+    return (0, import_node_fs4.readdirSync)(skillsDir()).filter((d) => d.startsWith(TM_PREFIX)).flatMap((d) => {
+      const file = (0, import_node_path5.join)(skillsDir(), d, "SKILL.md");
+      if (!(0, import_node_fs4.existsSync)(file)) return [];
+      const fm = parseSkillFrontmatter((0, import_node_fs4.readFileSync)(file, "utf8"));
       const slug = d.slice(TM_PREFIX.length);
       return [{ slug, name: fm.name ?? slug, version: "", description: fm.description ?? "" }];
     });
@@ -227,10 +256,10 @@ function readInstalledSkills() {
 
 // src/lib/skills-resync.ts
 var import_node_child_process2 = require("node:child_process");
-var import_node_path5 = require("node:path");
+var import_node_path6 = require("node:path");
 function spawnSkillsSync(opts) {
   try {
-    const args = [(0, import_node_path5.join)(pluginRoot(), "dist", "sync-skills.js"), `--caller=${opts.caller}`];
+    const args = [(0, import_node_path6.join)(pluginRoot(), "dist", "sync-skills.js"), `--caller=${opts.caller}`];
     if (opts.force) args.push("--force");
     const child = (0, import_node_child_process2.spawn)(process.execPath, args, { detached: true, stdio: "ignore" });
     child.unref();
@@ -243,19 +272,19 @@ var EMPTY_NUDGE_INTERVAL_MS = Math.floor(7 * 24 * 60 * 60 * 1e3 / 2);
 var IDENTITY_NUDGE_INTERVAL_MS = 7 * 24 * 60 * 60 * 1e3;
 var BOOTSTRAP_INTERVAL_MS = 10 * 60 * 1e3;
 function stateFile() {
-  return process.env.TOKENMONK_ANNOUNCE_STATE ?? (0, import_node_path6.join)((0, import_node_os5.homedir)(), ".tokenmonk", "announce.json");
+  return process.env.TOKENMONK_ANNOUNCE_STATE ?? (0, import_node_path7.join)((0, import_node_os6.homedir)(), ".tokenmonk", "announce.json");
 }
 function readState() {
   try {
-    return JSON.parse((0, import_node_fs4.readFileSync)(stateFile(), "utf8"));
+    return JSON.parse((0, import_node_fs5.readFileSync)(stateFile(), "utf8"));
   } catch {
     return {};
   }
 }
 function writeState(s) {
   try {
-    (0, import_node_fs4.mkdirSync)((0, import_node_path6.join)(stateFile(), ".."), { recursive: true });
-    (0, import_node_fs4.writeFileSync)(stateFile(), JSON.stringify(s));
+    (0, import_node_fs5.mkdirSync)((0, import_node_path7.join)(stateFile(), ".."), { recursive: true });
+    (0, import_node_fs5.writeFileSync)(stateFile(), JSON.stringify(s));
   } catch {
   }
 }

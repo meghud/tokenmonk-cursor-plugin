@@ -87,9 +87,9 @@ var require_dist = __commonJS({
 });
 
 // src/flush-spool.ts
-var import_node_os5 = require("node:os");
-var import_node_path6 = require("node:path");
-var import_node_fs4 = require("node:fs");
+var import_node_os6 = require("node:os");
+var import_node_path7 = require("node:path");
+var import_node_fs5 = require("node:fs");
 
 // src/lib/hook-log.ts
 var import_node_fs = require("node:fs");
@@ -194,7 +194,7 @@ function appendRecord(record, now = /* @__PURE__ */ new Date()) {
 
 // src/lib/record.ts
 var import_node_child_process3 = require("node:child_process");
-var import_node_os3 = require("node:os");
+var import_node_os4 = require("node:os");
 
 // src/lib/git-context.ts
 var import_node_child_process2 = require("node:child_process");
@@ -236,6 +236,31 @@ function detectSurface(input = {}) {
   return process.env.VSCODE_PID ? "ide" : "cli";
 }
 
+// src/lib/identity-store.ts
+var import_node_fs3 = require("node:fs");
+var import_node_os3 = require("node:os");
+var import_node_path5 = require("node:path");
+function storePath() {
+  return process.env.TOKENMONK_IDENTITY_STORE ?? (0, import_node_path5.join)((0, import_node_os3.homedir)(), ".tokenmonk", "cursor-identity.json");
+}
+function rememberEmail(email) {
+  if (!email) return;
+  try {
+    if (readEmail() === email) return;
+    (0, import_node_fs3.mkdirSync)((0, import_node_path5.join)(storePath(), ".."), { recursive: true });
+    (0, import_node_fs3.writeFileSync)(storePath(), JSON.stringify({ email, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }));
+  } catch {
+  }
+}
+function readEmail() {
+  try {
+    const s = JSON.parse((0, import_node_fs3.readFileSync)(storePath(), "utf8"));
+    return typeof s.email === "string" && s.email.length > 0 ? s.email : null;
+  } catch {
+    return null;
+  }
+}
+
 // src/lib/record.ts
 function str(v) {
   return typeof v === "string" && v.length > 0 ? v : null;
@@ -247,7 +272,9 @@ function isAttributableEmail(email) {
   return !e.endsWith(".noreply.github.com");
 }
 function identityHint(payload) {
-  const payloadEmail = str(payload.user_email) ?? str(process.env.CURSOR_USER_EMAIL);
+  const observed = str(payload.user_email) ?? str(process.env.CURSOR_USER_EMAIL);
+  if (isAttributableEmail(observed)) rememberEmail(observed);
+  const payloadEmail = observed ?? readEmail();
   let gitUser = null;
   try {
     gitUser = (0, import_node_child_process3.execSync)("git config user.name", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || null;
@@ -256,7 +283,7 @@ function identityHint(payload) {
   }
   let osUser = null;
   try {
-    osUser = (0, import_node_os3.userInfo)().username || null;
+    osUser = (0, import_node_os4.userInfo)().username || null;
   } catch {
     osUser = null;
   }
@@ -305,15 +332,15 @@ function sanitizeId(raw) {
 }
 
 // src/lib/turn-aggregate.ts
-var import_node_fs3 = require("node:fs");
-var import_node_os4 = require("node:os");
-var import_node_path5 = require("node:path");
+var import_node_fs4 = require("node:fs");
+var import_node_os5 = require("node:os");
+var import_node_path6 = require("node:path");
 function turnsDir() {
-  return process.env.TOKENMONK_TURNS_DIR ?? (0, import_node_path5.join)((0, import_node_os4.homedir)(), ".tokenmonk", "turns");
+  return process.env.TOKENMONK_TURNS_DIR ?? (0, import_node_path6.join)((0, import_node_os5.homedir)(), ".tokenmonk", "turns");
 }
 function turnFile(conversationId, generationId) {
   const safeConv = conversationId || "unknown";
-  return (0, import_node_path5.join)(turnsDir(), `${safeConv}${generationId ? `-${generationId}` : ""}.jsonl`);
+  return (0, import_node_path6.join)(turnsDir(), `${safeConv}${generationId ? `-${generationId}` : ""}.jsonl`);
 }
 function readTurnAggregate(conversationId, generationId) {
   const out = { turnId: null, toolNames: [], filePaths: [] };
@@ -321,8 +348,8 @@ function readTurnAggregate(conversationId, generationId) {
   const paths = /* @__PURE__ */ new Set();
   try {
     const file = turnFile(conversationId, generationId);
-    if (!(0, import_node_fs3.existsSync)(file)) return out;
-    for (const line of (0, import_node_fs3.readFileSync)(file, "utf8").split("\n")) {
+    if (!(0, import_node_fs4.existsSync)(file)) return out;
+    for (const line of (0, import_node_fs4.readFileSync)(file, "utf8").split("\n")) {
       if (!line) continue;
       let entry;
       try {
@@ -346,7 +373,7 @@ function readTurnAggregate(conversationId, generationId) {
 }
 function clearTurn(conversationId, generationId) {
   try {
-    (0, import_node_fs3.rmSync)(turnFile(conversationId, generationId), { force: true });
+    (0, import_node_fs4.rmSync)(turnFile(conversationId, generationId), { force: true });
   } catch {
   }
 }
@@ -355,13 +382,13 @@ function pruneTurns(now = Date.now()) {
   let removed = 0;
   try {
     const dir = turnsDir();
-    if (!(0, import_node_fs3.existsSync)(dir)) return 0;
-    for (const name of (0, import_node_fs3.readdirSync)(dir)) {
+    if (!(0, import_node_fs4.existsSync)(dir)) return 0;
+    for (const name of (0, import_node_fs4.readdirSync)(dir)) {
       if (!name.endsWith(".jsonl")) continue;
-      const file = (0, import_node_path5.join)(dir, name);
+      const file = (0, import_node_path6.join)(dir, name);
       try {
-        if (now - (0, import_node_fs3.statSync)(file).mtimeMs > MAX_AGE_MS2) {
-          (0, import_node_fs3.rmSync)(file, { force: true });
+        if (now - (0, import_node_fs4.statSync)(file).mtimeMs > MAX_AGE_MS2) {
+          (0, import_node_fs4.rmSync)(file, { force: true });
           removed++;
         }
       } catch {
@@ -375,19 +402,19 @@ function pruneTurns(now = Date.now()) {
 // src/flush-spool.ts
 var THOUGHT_GATE_MS = 6e4;
 function markerDir() {
-  return process.env.TOKENMONK_DRAIN_DIR ?? (0, import_node_path6.join)((0, import_node_os5.homedir)(), ".tokenmonk", "drain");
+  return process.env.TOKENMONK_DRAIN_DIR ?? (0, import_node_path7.join)((0, import_node_os6.homedir)(), ".tokenmonk", "drain");
 }
 function gateOpen(conversationId) {
   const safe = conversationId.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 128) || "unknown";
-  const marker = (0, import_node_path6.join)(markerDir(), safe);
+  const marker = (0, import_node_path7.join)(markerDir(), safe);
   try {
-    const last = Number((0, import_node_fs4.readFileSync)(marker, "utf8"));
+    const last = Number((0, import_node_fs5.readFileSync)(marker, "utf8"));
     if (Number.isFinite(last) && Date.now() - last < THOUGHT_GATE_MS) return false;
   } catch {
   }
   try {
-    (0, import_node_fs4.mkdirSync)(markerDir(), { recursive: true });
-    (0, import_node_fs4.writeFileSync)(marker, String(Date.now()));
+    (0, import_node_fs5.mkdirSync)(markerDir(), { recursive: true });
+    (0, import_node_fs5.writeFileSync)(marker, String(Date.now()));
   } catch {
   }
   return true;
