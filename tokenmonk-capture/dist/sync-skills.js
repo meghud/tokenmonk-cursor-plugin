@@ -368,7 +368,7 @@ async function syncSkills(force = false) {
 }
 
 // src/sync-skills.ts
-var CHECK_INTERVAL_MS = 24 * 60 * 60 * 1e3;
+var CHECK_INTERVAL_MS = Number(process.env.TOKENMONK_SKILLS_CHECK_INTERVAL_MS) || 60 * 60 * 1e3;
 function checkFile() {
   return process.env.TOKENMONK_SKILLS_CHECK ?? (0, import_node_path6.join)((0, import_node_os6.homedir)(), ".tokenmonk", "cursor-skills-check.json");
 }

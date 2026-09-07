@@ -385,7 +385,7 @@ async function main() {
   const state = readState();
   const installed = readInstalledSkills();
   const now = Date.now();
-  if (installed.length === 0 && now - (state.bootstrappedAt ?? 0) > BOOTSTRAP_INTERVAL_MS) {
+  if (now - (state.bootstrappedAt ?? 0) > BOOTSTRAP_INTERVAL_MS) {
     spawnSkillsSync({ caller: "announce-bootstrap" });
     writeState({ ...state, bootstrappedAt: now });
   }
