@@ -392,8 +392,8 @@ async function main() {
   const argv = process.argv.slice(2);
   const force = argv.includes("--force") || process.env.TOKENMONK_FORCE_SYNC === "1";
   const caller = argv.find((a) => a.startsWith("--caller="))?.slice("--caller=".length) ?? "unknown";
-  if (!process.stdin.isTTY) await readStdinJson();
-  process.stdout.write("{}");
+  const payload = await readStdinJson();
+  if (typeof payload.hook_event_name === "string") process.stdout.write("{}");
   if (!isDue(force)) {
     logHook("cursor-skills", { event: "throttled", caller });
     return;
