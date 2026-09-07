@@ -502,7 +502,7 @@ async function main() {
   const serverName = typeof payload.mcp_server_name === "string" && payload.mcp_server_name.length > 0 ? payload.mcp_server_name : "unknown";
   const decision = decideSample(nextTrafficCount(conversationId, serverName), config);
   if (!decision.emit) {
-    logHook("capture-tool-use", { event: "sampled_out", server: serverName, count: decision.count });
+    logHook("capture-tool-use", { event: "sampled_out", cursor_event: event, server: serverName, count: decision.count });
     return;
   }
   const traffic = buildToolTraffic({
@@ -524,7 +524,7 @@ async function main() {
   appendRecord(record);
   logHook("capture-tool-use", {
     event: "spooled",
-    hook: event,
+    cursor_event: event,
     server: traffic.server_name,
     tool: traffic.tool_name,
     latency_ms: latencyMs(payload.duration),
