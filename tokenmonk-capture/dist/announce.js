@@ -20,14 +20,15 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/announce.ts
 var announce_exports = {};
 __export(announce_exports, {
+  buildAutomationsText: () => buildAutomationsText,
   buildSkillsText: () => buildSkillsText,
   changedSkills: () => changedSkills,
   pickTopic: () => pickTopic
 });
 module.exports = __toCommonJS(announce_exports);
-var import_node_fs5 = require("node:fs");
-var import_node_os6 = require("node:os");
-var import_node_path7 = require("node:path");
+var import_node_fs6 = require("node:fs");
+var import_node_os7 = require("node:os");
+var import_node_path8 = require("node:path");
 
 // src/lib/hook-log.ts
 var import_node_fs = require("node:fs");
@@ -267,29 +268,64 @@ function spawnSkillsSync(opts) {
   }
 }
 
+// src/lib/automation-sync.ts
+var import_node_fs5 = require("node:fs");
+var import_node_os6 = require("node:os");
+var import_node_path7 = require("node:path");
+var CHECK_INTERVAL_MS = 24 * 60 * 60 * 1e3;
+function distributionDir() {
+  return process.env.TOKENMONK_DISTRIBUTION_DIR ?? (0, import_node_path7.join)((0, import_node_os6.homedir)(), ".tokenmonk", "distribution");
+}
+function stagedPath() {
+  return (0, import_node_path7.join)(distributionDir(), "cursor-automations.json");
+}
+function readJson2(path) {
+  try {
+    return JSON.parse((0, import_node_fs5.readFileSync)(path, "utf8"));
+  } catch {
+    return null;
+  }
+}
+function readStaged() {
+  return readJson2(stagedPath()) ?? { scheduled_jobs: [], skipped_artifacts: 0 };
+}
+function describeSchedule(job) {
+  if (job.cron_expression) return `cron ${job.cron_expression}`;
+  if (job.run_once_at) return `once at ${job.run_once_at}`;
+  return "no schedule set";
+}
+
 // src/announce.ts
 var EMPTY_NUDGE_INTERVAL_MS = Math.floor(7 * 24 * 60 * 60 * 1e3 / 2);
 var IDENTITY_NUDGE_INTERVAL_MS = 7 * 24 * 60 * 60 * 1e3;
 var BOOTSTRAP_INTERVAL_MS = 10 * 60 * 1e3;
 function stateFile() {
-  return process.env.TOKENMONK_ANNOUNCE_STATE ?? (0, import_node_path7.join)((0, import_node_os6.homedir)(), ".tokenmonk", "announce.json");
+  return process.env.TOKENMONK_ANNOUNCE_STATE ?? (0, import_node_path8.join)((0, import_node_os7.homedir)(), ".tokenmonk", "announce.json");
 }
 function readState() {
   try {
-    return JSON.parse((0, import_node_fs5.readFileSync)(stateFile(), "utf8"));
+    return JSON.parse((0, import_node_fs6.readFileSync)(stateFile(), "utf8"));
   } catch {
     return {};
   }
 }
 function writeState(s) {
   try {
-    (0, import_node_fs5.mkdirSync)((0, import_node_path7.join)(stateFile(), ".."), { recursive: true });
-    (0, import_node_fs5.writeFileSync)(stateFile(), JSON.stringify(s));
+    (0, import_node_fs6.mkdirSync)((0, import_node_path8.join)(stateFile(), ".."), { recursive: true });
+    (0, import_node_fs6.writeFileSync)(stateFile(), JSON.stringify(s));
   } catch {
   }
 }
 function changedSkills(installed, announced) {
   return installed.filter((s) => announced[s.slug] !== s.version);
+}
+function buildAutomationsText(jobs) {
+  const list = jobs.map((j) => `  - ${j.name} (${describeSchedule(j)})`).join("\n");
+  return [
+    `TokenMonk: ${jobs.length} scheduled job${jobs.length === 1 ? "" : "s"} ${jobs.length === 1 ? "is" : "are"} offered to this account:`,
+    list,
+    `These are offers, not something running. Creating one is the user's decision and costs tokens on a schedule, so raise it only if it is relevant to what they are doing. If they want details or want to accept one, the TokenMonk provision skill lists and records them.`
+  ].join("\n");
 }
 function buildSkillsText(changed, dir) {
   const list = changed.map((s) => `  - ${s.name}: ${s.description}`).join("\n");
@@ -309,6 +345,17 @@ function pickTopic(args) {
       commit: (s) => ({
         ...s,
         announcedSkills: { ...s.announcedSkills ?? {}, ...Object.fromEntries(installed.map((k) => [k.slug, k.version])) }
+      })
+    };
+  }
+  const newJobs = args.jobs.filter((j) => (state.announcedJobs ?? {})[j.name] !== j.version);
+  if (newJobs.length > 0) {
+    return {
+      kind: "automations",
+      text: buildAutomationsText(newJobs),
+      commit: (s) => ({
+        ...s,
+        announcedJobs: { ...s.announcedJobs ?? {}, ...Object.fromEntries(args.jobs.map((j) => [j.name, j.version])) }
       })
     };
   }
@@ -344,6 +391,7 @@ async function main() {
   }
   const topic = pickTopic({
     installed,
+    jobs: readStaged().scheduled_jobs,
     state,
     dir: skillsDir(),
     hasEmail: Boolean(identityHint(payload).email),
@@ -362,6 +410,7 @@ if (require.main === module) {
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  buildAutomationsText,
   buildSkillsText,
   changedSkills,
   pickTopic

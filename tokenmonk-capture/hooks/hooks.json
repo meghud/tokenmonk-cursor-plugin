@@ -23,6 +23,11 @@
         "type": "command",
         "timeout": 10,
         "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/sync-skills.js\" --caller=sessionstart"
+      },
+      {
+        "type": "command",
+        "timeout": 10,
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/sync-automations.js\""
       }
     ],
     "stop": [
