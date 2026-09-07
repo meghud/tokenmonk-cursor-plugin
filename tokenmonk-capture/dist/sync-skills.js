@@ -229,7 +229,7 @@ async function fetchEntitled(baseUrl, orgToken, etag, force) {
       status: 200,
       skills: data.skills ?? [],
       etag: responseEtag,
-      identityStatus: data.identity?.status === "identified" ? "identified" : "unknown"
+      identityStatus: data.identity?.status === "resolved" || data.identity?.status === "unmapped_account" ? data.identity.status : "unknown"
     };
   } finally {
     clearTimeout(timeout);
