@@ -1,5 +1,9 @@
 "use strict";
 
+// src/lib/scrub-child-guard.ts
+var SCRUB_CHILD_ENV = "TOKENMONK_SCRUB_CHILD";
+if (process.env[SCRUB_CHILD_ENV] === "1") process.exit(0);
+
 // src/config-mcp.ts
 var import_node_fs2 = require("node:fs");
 var import_node_path3 = require("node:path");

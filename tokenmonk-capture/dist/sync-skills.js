@@ -24,6 +24,12 @@ __export(sync_skills_exports, {
   markChecked: () => markChecked
 });
 module.exports = __toCommonJS(sync_skills_exports);
+
+// src/lib/scrub-child-guard.ts
+var SCRUB_CHILD_ENV = "TOKENMONK_SCRUB_CHILD";
+if (process.env[SCRUB_CHILD_ENV] === "1") process.exit(0);
+
+// src/sync-skills.ts
 var import_node_fs5 = require("node:fs");
 var import_node_os6 = require("node:os");
 var import_node_path6 = require("node:path");

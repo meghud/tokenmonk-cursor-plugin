@@ -28,6 +28,11 @@
         "type": "command",
         "timeout": 10,
         "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/sync-automations.js\""
+      },
+      {
+        "type": "command",
+        "timeout": 5,
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/capture-backfill.js\""
       }
     ],
     "stop": [
@@ -35,6 +40,11 @@
         "type": "command",
         "timeout": 5,
         "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/flush-spool.js\""
+      },
+      {
+        "type": "command",
+        "timeout": 5,
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/capture-backfill.js\""
       }
     ],
     "afterAgentResponse": [
@@ -70,6 +80,13 @@
         "type": "command",
         "timeout": 5,
         "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/capture-tool-use.js\""
+      }
+    ],
+    "workspaceOpen": [
+      {
+        "type": "command",
+        "timeout": 5,
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/dist/capture-backfill.js\""
       }
     ]
   }

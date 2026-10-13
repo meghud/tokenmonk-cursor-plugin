@@ -33,7 +33,9 @@ stays out of transcripts and commits.
 
 ## What it sends
 
-- your prompt text, **after** secrets and PII are removed on your machine
+- your prompt text, **after** secrets, payment-card data, personal data and your organisation's own
+  redaction rules are removed on your machine — each removed value becomes a marker such as
+  `[REDACTED:email]`
 - the model, conversation id, and workspace git remote and branch
 - ticket keys detected in the branch name
 - which `/slash` skill you invoked, when you invoke one
@@ -44,11 +46,29 @@ stays out of transcripts and commits.
   records queue locally and upload later; your session is unaffected.
 - **Never sends shell command text or file contents.**
 - **Redacts before writing to disk**, not just before sending — the local queue never holds a raw
-  secret. 13 categories: API keys for the major providers, private key blocks, bearer tokens, email
-  addresses, credit cards, and more.
+  secret. 17 built-in categories: API keys for the major providers, private key blocks and bearer
+  tokens (always on); card numbers, security codes, expiry dates and IBANs; email addresses, phone
+  numbers, US SSNs and IP addresses. Your admin can turn individual card and personal-data categories
+  off and add patterns of their own (TokenMonk → Admin → Privacy & Redaction).
 - **Sends nothing without configuration.** With no endpoint and token, records simply queue.
 
 Set `REDACT_MODE=content` to send hashes and shapes instead of prompt text.
+
+### Instruction rules
+
+Admins can also write redaction rules in plain language ("internal project codenames", "customer
+account numbers"). These are applied **on your machine** by the Cursor CLI, `cursor-agent`, using
+your own Cursor login — your prompt is never sent to TokenMonk to be redacted. While such rules are
+active:
+
+- a prompt's text is held back until the rules have been applied, then uploaded a few seconds after
+  the turn (one small model call per prompt; results are cached);
+- if it can't be redacted — `cursor-agent` isn't installed, or the model changed anything other than
+  the sensitive spans — the prompt text is **never sent**, only its metadata;
+- tool payloads are not model-redacted, so their content is withheld too.
+
+Install the CLI with `curl https://cursor.com/install -fsS | bash` if your organisation uses
+instruction rules. `TOKENMONK_SCRUB_MODEL` picks the model `cursor-agent` uses.
 
 ## Scope today
 

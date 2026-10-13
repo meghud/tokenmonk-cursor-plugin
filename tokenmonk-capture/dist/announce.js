@@ -26,6 +26,12 @@ __export(announce_exports, {
   pickTopic: () => pickTopic
 });
 module.exports = __toCommonJS(announce_exports);
+
+// src/lib/scrub-child-guard.ts
+var SCRUB_CHILD_ENV = "TOKENMONK_SCRUB_CHILD";
+if (process.env[SCRUB_CHILD_ENV] === "1") process.exit(0);
+
+// src/announce.ts
 var import_node_fs6 = require("node:fs");
 var import_node_os7 = require("node:os");
 var import_node_path8 = require("node:path");

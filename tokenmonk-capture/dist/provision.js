@@ -24,6 +24,12 @@ __export(provision_exports, {
   describe: () => describe
 });
 module.exports = __toCommonJS(provision_exports);
+
+// src/lib/scrub-child-guard.ts
+var SCRUB_CHILD_ENV = "TOKENMONK_SCRUB_CHILD";
+if (process.env[SCRUB_CHILD_ENV] === "1") process.exit(0);
+
+// src/provision.ts
 var import_node_crypto = require("node:crypto");
 
 // src/lib/hook-log.ts
@@ -277,6 +283,9 @@ function loadConfig() {
 // src/lib/automation-sync.ts
 var FETCH_TIMEOUT_MS = 8e3;
 var CHECK_INTERVAL_MS = 24 * 60 * 60 * 1e3;
+function runsOnCursor(support, fallback) {
+  return support === void 0 ? fallback : support.includes("cursor");
+}
 function distributionDir() {
   return process.env.TOKENMONK_DISTRIBUTION_DIR ?? (0, import_node_path7.join)((0, import_node_os6.homedir)(), ".tokenmonk", "distribution");
 }
@@ -336,7 +345,7 @@ async function syncAutomations(force = false) {
     }
     if (!res.ok) return { status: "unreachable", ...none };
     const data = await res.json();
-    jobs = data.scheduled_jobs ?? [];
+    jobs = (data.scheduled_jobs ?? []).filter((j) => runsOnCursor(j.harness_support, true));
     artifactCount = (data.artifacts ?? []).length;
   } catch {
     return { status: "unreachable", ...none };
